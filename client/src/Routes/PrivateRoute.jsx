@@ -1,0 +1,36 @@
+import { useEffect, useState } from "react";
+import { Outlet, Navigate } from "react-router-dom";
+import Spinner from "../components/Spinner";
+
+const API_URL =
+  import.meta.env.MODE === "development"
+    ? "http://localhost:5000"
+    : import.meta.env.VITE_SERVER_URL;
+
+const PrivateRoute = () => {
+  const [ok, setOk] = useState(null);
+
+  const authCheck = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/user/user-auth`, {
+        method: "GET",
+        credentials: "include", // ✅ cookie
+      });
+
+      setOk(res.ok);
+    } catch (error) {
+      console.error(error);
+      setOk(false);
+    }
+  };
+
+  useEffect(() => {
+    authCheck();
+  }, []);
+
+  if (ok === null) return <Spinner />;
+
+  return ok ? <Outlet /> : <Navigate to="/login" />;
+};
+
+export default PrivateRoute;
