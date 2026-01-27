@@ -1,8 +1,9 @@
 import User from "../models/user.model.js";
 import bcryptjs from "bcryptjs";
 
-//update uset details
+//update user details
 export const updateUser = async (req, res) => {
+  // ✅ Safety Check: Ensure the logged-in user matches the ID in the URL
   if (req.user.id !== req.params.id) {
     return res.status(401).send({
       success: false,
@@ -18,9 +19,9 @@ export const updateUser = async (req, res) => {
       phone: req.body.phone,
     };
 
-    // Check if a new avatar was uploaded
+    // Check if a new avatar was uploaded via Multer
     if (req.file) {
-      updatedFields.avatar = req.file.filename; // Or `req.file.path` depending on your multer config
+      updatedFields.avatar = req.file.filename; 
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -39,7 +40,7 @@ export const updateUser = async (req, res) => {
   } catch (error) {
     if (error.code === 11000) {
       return res.status(200).send({
-        success: true,
+        success: true, // sending true so frontend handles it gracefully
         message: "Email already taken, please login!",
       });
     }
@@ -71,7 +72,7 @@ export const updateUserPassword = async (req, res) => {
       });
     }
 
-    // 🚫 Block Google users
+    // 🚫 Block Google users from changing password (they don't have one)
     if (validUser.authProvider === "google") {
       return res.status(400).send({
         success: false,
@@ -105,6 +106,7 @@ export const updateUserPassword = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).send({ success: false, message: "Error updating password" });
   }
 };
 
@@ -118,16 +120,20 @@ export const deleteUserAccount = async (req, res, next) => {
     });
   try {
     await User.findByIdAndDelete(req.params.id);
-    res.clearCookie("access_token", {
+
+    // ✅ FIXED: Clear the CORRECT cookie name (X_TTMS_access_token)
+    res.clearCookie("X_TTMS_access_token", {
       secure: process.env.NODE_ENV_CUSTOM === "production",
       sameSite: process.env.NODE_ENV_CUSTOM === "production" ? "none" : "lax",
-    }); //clear cookie before sending json
+    }); 
+    
     res.status(200).send({
       success: true,
       message: "User account has been deleted!",
     });
   } catch (error) {
     console.log(error);
+    res.status(500).send({ success: false, message: "Error deleting account" });
   }
 };
 
@@ -135,14 +141,16 @@ export const deleteUserAccount = async (req, res, next) => {
 export const getAllUsers = async (req, res) => {
   try {
     const searchTerm = req.query.searchTerm || "";
+    // Regex search on multiple fields
     const users = await User.find({
-      user_role: 0,
+      user_role: 0, // Only fetch normal users, not admins
       $or: [
         { username: { $regex: searchTerm, $options: "i" } },
         { email: { $regex: searchTerm, $options: "i" } },
         { phone: { $regex: searchTerm, $options: "i" } },
       ],
     });
+    
     if (users && users.length > 0) {
       res.send(users);
     } else {
@@ -153,6 +161,7 @@ export const getAllUsers = async (req, res) => {
     }
   } catch (error) {
     console.log(error);
+    res.status(500).send({ success: false, message: "Error fetching users" });
   }
 };
 
@@ -166,5 +175,6 @@ export const deleteUserAccountAdmin = async (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).send({ success: false, message: "Error deleting user" });
   }
 };

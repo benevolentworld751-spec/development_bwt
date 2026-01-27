@@ -58,7 +58,8 @@ function App() {
 
   return (
     <>
-      <Router>
+      {/* ✅ ADDED FUTURE FLAGS HERE TO SILENCE WARNINGS */}
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Navbar />
         <ScrollToTop />
         <Routes>
@@ -84,13 +85,13 @@ function App() {
           <Route path="/car-package" element={<CarPackagePage />} />
           <Route path="/car-book" element={<BookCar />} />
 
-          {/* ✅ FIXED USER ROUTES (Removed 'path' from PrivateRoute wrapper) */}
+          {/* User Protected Routes */}
           <Route element={<PrivateRoute />}>
             <Route path="/profile/user" element={<Profile />} />
             <Route path="/booking/:packageId" element={<Booking />} />
           </Route>
 
-          {/* ✅ FIXED ADMIN ROUTES (Removed 'path' from AdminRoute wrapper) */}
+          {/* Admin Protected Routes */}
           <Route element={<AdminRoute />}>
             <Route path="/profile/admin" element={<AdminDashboard />} />
             <Route path="/profile/admin/update-package/:id" element={<UpdatePackage />} />

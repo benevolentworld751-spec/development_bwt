@@ -1,11 +1,19 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
-// ✅ 1. SignIn Middleware
+// ✅ 1. REQUIRE SIGN IN
 export const requireSignIn = async (req, res, next) => {
   try {
-    // CRITICAL FIX: Read the exact cookie name used in your controller
+    // 🚨 CRITICAL FIX: Must match the name in your Login Controller
+
     const token = req.cookies.X_TTMS_access_token;
+    res.cookie("X_TTMS_access_token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      path: "/",
+      maxAge: 4 * 24 * 60 * 60 * 1000,
+    });
 
     if (!token) {
       return res.status(401).send({
@@ -14,7 +22,7 @@ export const requireSignIn = async (req, res, next) => {
       });
     }
 
-    // CRITICAL FIX: Use the environment variable, NOT a hardcoded string
+    // Verify using the Secret from .env
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
         return res.status(403).send({
@@ -22,8 +30,6 @@ export const requireSignIn = async (req, res, next) => {
           message: "Forbidden: Invalid Token",
         });
       }
-
-      // Attach decoded payload (contains { id: ... }) to request
       req.user = decoded;
       next();
     });
@@ -33,17 +39,12 @@ export const requireSignIn = async (req, res, next) => {
   }
 };
 
-// ✅ 2. Admin Middleware
+// ✅ 2. IS ADMIN
 export const isAdmin = async (req, res, next) => {
   try {
-    // Fetch the full user because the token only contains the ID
     const user = await User.findById(req.user.id);
-    
-    if (!user) {
-         return res.status(401).send({ success: false, message: "User not found" });
-    }
+    if (!user) return res.status(401).send({ message: "User not found" });
 
-    // Check Role (1 = Admin)
     if (user.user_role === 1) {
       next();
     } else {
@@ -54,10 +55,6 @@ export const isAdmin = async (req, res, next) => {
     }
   } catch (error) {
     console.log(error);
-    res.status(401).send({
-      success: false,
-      message: "Error in admin middleware",
-      error,
-    });
+    res.status(401).send({ message: "Error in admin middleware" });
   }
 };

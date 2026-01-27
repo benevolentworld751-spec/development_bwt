@@ -3,7 +3,7 @@ import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 
-const isProduction = process.env.NODE_ENV_CUSTOM === "development" ? false : true;
+const isProduction = process.env.NODE_ENV_CUSTOM === "production" ? true : false;
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // test controller
@@ -76,7 +76,6 @@ export const loginController = async (req, res) => {
       });
     }
 
-    // ❌ prevent password login for Google users
     if (validUser.authProvider === "google") {
       return res.status(400).send({
         success: false,

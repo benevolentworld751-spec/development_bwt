@@ -20,20 +20,13 @@ connectDB();
 // ✅ FIXED CORS
 app.use(
   cors({
-    origin: [
-      "https://www.benevolent.world",
-      "http://localhost:5173",
-    ],
+    origin: [      "http://localhost:5173",
+      "http://localhost:3000"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-    ],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     credentials: true,
-  })
+  }),
 );
-
 
 app.use(express.json());
 app.use(cookieParser());
@@ -52,11 +45,14 @@ app.use("/api/payment", paymentRoutes);
 const PORT = process.env.PORT || 5000;
 
 // 🚀 PRODUCTION MODE (Render)
-if (process.env.NODE_ENV_CUSTOM === "production") {
+if (
+  process.env.NODE_ENV_CUSTOM === "production"
+) {
   app.use(express.static(path.join(__dirname, "/client/dist")));
 
   // ❗ Express 5 fix → "*" breaks; must use "/*"
-  app.get("/*", (req, res) => {
+  // ✅ Fix: Use "*" for wildcard (matches everything)
+  app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "client", "dist", "index.html"));
   });
 } else {

@@ -3,9 +3,9 @@ import { Outlet, Navigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 
 const API_URL =
-  import.meta.env.MODE === "development"
-    ? "http://localhost:5000"
-    : import.meta.env.VITE_SERVER_URL;
+  import.meta.env.MODE === "production"
+    ? import.meta.env.VITE_SERVER_URL
+    : "http://localhost:5000";
 
 const PrivateRoute = () => {
   const [ok, setOk] = useState(null);
