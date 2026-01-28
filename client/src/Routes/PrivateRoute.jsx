@@ -10,27 +10,40 @@ const API_URL =
 const PrivateRoute = () => {
   const [ok, setOk] = useState(null);
 
-  const authCheck = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/user/user-auth`, {
-        method: "GET",
-        credentials: "include", // ✅ cookie
-      });
-
-      setOk(res.ok);
-    } catch (error) {
-      console.error(error);
-      setOk(false);
-    }
-  };
-
   useEffect(() => {
+    let mounted = true;
+
+    const authCheck = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/user/user-auth`, {
+          credentials: "include", // send cookie to backend
+        });
+
+        if (!mounted) return;
+
+        if (res.ok) {
+          setOk(true);
+        } else {
+          setOk(false);
+        }
+      } catch (err) {
+        console.error(err);
+        if (mounted) setOk(false);
+      }
+    };
+
     authCheck();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  // Show spinner while auth is being verified
   if (ok === null) return <Spinner />;
 
-  return ok ? <Outlet /> : <Navigate to="/login" />;
+  // If authenticated, render nested routes; otherwise redirect to login
+  return ok ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
 export default PrivateRoute;

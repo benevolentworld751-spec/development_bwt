@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
-  // updateUserStart,
-  // updateUserSuccess,
-  // updateUserFailure,
   logOutStart,
   logOutSuccess,
   logOutFailure,
@@ -13,37 +11,37 @@ import {
   deleteUserAccountFailure,
 } from "../../redux/user/userSlice";
 
-//   import
-//   {
-//   getDownloadURL,
-//   getStorage,
-//   ref,
-//   uploadBytesResumable
-//   } from "firebase/storage";
-
-//   import  { app } from "../../firebase";
-
 import AllBookings from "./AllBookings";
 import AdminUpdateProfile from "./AdminUpdateProfile";
 import AddPackages from "./AddPackages";
-import "./styles/DashBoardStyle.css";
 import AllPackages from "./AllPackages";
 import AllUsers from "./AllUsers";
 import Payment from "./Payment";
 import RatingsReviews from "./RatingsReviews";
 import History from "./History";
-import { toast } from "react-toastify";
+
+import "./styles/DashBoardStyle.css";
+
 const API_URL =
   import.meta.env.MODE === "development"
     ? "http://localhost:5000"
     : import.meta.env.VITE_SERVER_URL;
+
+const panels = [
+  { id: 1, label: "Bookings", component: <AllBookings /> },
+  { id: 2, label: "Add Packages", component: <AddPackages /> },
+  { id: 3, label: "All Packages", component: <AllPackages /> },
+  { id: 4, label: "Users", component: <AllUsers /> },
+  { id: 5, label: "Payments", component: <Payment /> },
+  { id: 6, label: "Ratings/Reviews", component: <RatingsReviews /> },
+  { id: 7, label: "History", component: <History /> },
+  { id: 8, label: "Update Profile", component: <AdminUpdateProfile /> },
+];
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  // const fileRef = useRef(null);
-const { currentUser, loading } = useSelector((state) => state.user);
-  //const [profilePhoto, setProfilePhoto] = useState(undefined);
-  //const [photoPercentage, setPhotoPercentage] = useState();
+  const { currentUser, loading } = useSelector((state) => state.user);
 
   const [activePanelId, setActivePanelId] = useState(1);
   const [formData, setFormData] = useState({
@@ -55,7 +53,7 @@ const { currentUser, loading } = useSelector((state) => state.user);
   });
 
   useEffect(() => {
-    if (currentUser !== null) {
+    if (currentUser) {
       setFormData({
         username: currentUser.username,
         email: currentUser.email,
@@ -69,244 +67,138 @@ const { currentUser, loading } = useSelector((state) => state.user);
   const handleLogout = async () => {
     try {
       dispatch(logOutStart());
-      const res = await fetch(`${API_URL}/api/auth/logout`);
+      const res = await fetch(`${API_URL}/api/auth/logout`, {
+        credentials: "include",
+      });
       const data = await res.json();
-      if (data?.success !== true) {
+
+      if (!data?.success) {
         dispatch(logOutFailure(data?.message));
+        toast.error(data?.message || "Logout failed");
         return;
       }
+
       dispatch(logOutSuccess());
+      toast.success(data.message);
       navigate("/login");
-      toast.success(data?.message);
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.error(err);
+      dispatch(logOutFailure(err.message));
+      toast.error("Logout failed");
     }
   };
 
-  const handleDeleteAccount = async (e) => {
-    e.preventDefault();
+  const handleDeleteAccount = async () => {
     const CONFIRM = window.confirm(
-      "Are you sure? the account will be permenantly deleted!"
+      "Are you sure? Your account will be permanently deleted!"
     );
-    if (CONFIRM) {
-      try {
-        dispatch(deleteUserAccountStart());
-        const res = await fetch(`${API_URL}/api/user/delete/${currentUser._id}`, {
-          method: "DELETE",
-        });
-        const data = await res.json();
-        if (data?.success === false) {
-          dispatch(deleteUserAccountFailure(data?.message));
-          toast.error("Something went wrong!");
-          return;
-        }
-        dispatch(deleteUserAccountSuccess());
-        toast.success(data?.message);
-      } catch {''}
+    if (!CONFIRM) return;
+
+    try {
+      dispatch(deleteUserAccountStart());
+      const res = await fetch(`${API_URL}/api/user/delete/${currentUser._id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (!data?.success) {
+        dispatch(deleteUserAccountFailure(data?.message));
+        toast.error(data?.message || "Failed to delete account");
+        return;
+      }
+
+      dispatch(deleteUserAccountSuccess());
+      toast.success(data.message);
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+      dispatch(deleteUserAccountFailure(err.message));
+      toast.error("Failed to delete account");
     }
   };
+
+  if (loading || !currentUser) {
+    return <p className="text-center mt-10 text-lg">Loading...</p>;
+  }
 
   return (
     <div className="flex w-full flex-wrap max-sm:flex-col gap-16 p-2">
-      {currentUser ? (
-        <>
-          <div className="w-[25%] p-3 max-sm:w-full ">
-            <div className="flex flex-col items-center gap-4 p-3  rounded-lg shadow-lg ">
-              <div className="w-full flex flex-col items-center relative">
-                <img
-                  src={
+      {/* Sidebar */}
+      <div className="w-[25%] p-3 max-sm:w-full">
+        <div className="flex flex-col items-center gap-4 p-3 rounded-lg shadow-lg">
+          <img
+            src={
               formData.avatar?.startsWith("http")
-              ? formData.avatar
-                  : `${API_URL}/images/${formData.avatar}`
-                     }
+                ? formData.avatar
+                : `${API_URL}/images/${formData.avatar}`
+            }
+            alt="Profile"
+            className="w-36 h-36 object-cover rounded-full"
+          />
+          <p className="font-semibold border-b border-black py-1 w-full text-center">
+            Logged in user Information
+          </p>
+          <button
+            onClick={() => setActivePanelId(8)}
+            className="px-8 bg-[#EB662B] text-white text-base font-semibold my-3 py-1 rounded-lg hover:opacity-90"
+          >
+            Edit Profile
+          </button>
 
-                  alt="Profile photo"
-                  className="w-36 h-36 object-cover rounded-full"
-                />
+          <div className="w-full flex flex-col gap-3 shadow-2xl rounded-lg p-3 break-all">
+            {["Name", "Email", "Phone", "Address"].map((field) => (
+              <div key={field}>
+                <p>{field}</p>
+                <p className="text-base font-semibold py-2 border border-gray-300 px-3">
+                  {formData[field.toLowerCase()]}
+                </p>
               </div>
-
-              <p
-                style={{
-                  width: "100%",
-                  borderBottom: "1px solid black",
-                  lineHeight: "0.1em",
-                  margin: "10px",
-                }}
+            ))}
+            <div className="flex items-center justify-between mt-2">
+              <button
+                onClick={handleLogout}
+                className="px-4 py-1 bg-[#6358DC] text-white rounded-lg hover:opacity-90"
               >
-                <span className="font-semibold" style={{ background: "#fff" }}>
-                  Logged in user Information
-                </span>
-              </p>
-              <div className="w-full flex justify-between px-1">
-                <button
-                  onClick={() => setActivePanelId(8)}
-                  className="px-8  bg-[#EB662B] text-white text-base font-semibold  flex items-center justify-center my-3 border p-1 rounded-lg  hover:text-white"
-                >
-                  Edit Profile
-                </button>
-              </div>
-              <div className="w-full flex flex-col gap-3 shadow-2xl rounded-lg p-3 break-all">
-                <p>Name</p>
-                <p className="text-base font-semibold py-2 border border-gray-300 px-3">
-                  {currentUser.username}
-                </p>
-                <p>Email</p>
-                <p className="text-base font-semibold py-2 border border-gray-300 px-3">
-                  {currentUser.email}
-                </p>
-                <p>Phone</p>
-                <p className="text-base font-semibold py-2 border border-gray-300 px-3">
-                  {currentUser.phone}
-                </p>
-                <p>Address</p>
-                <p className="text-base font-semibold py-2 border border-gray-300 px-3">
-                  {currentUser.address}
-                </p>
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={handleLogout}
-                    className="px-4  bg-[#6358DC] text-white text-sm font-semibold  flex items-center justify-center my-3 border p-1 rounded-lg  hover:text-white"
-                  >
-                    Logout
-                  </button>
-
-                  <button
-                    onClick={handleDeleteAccount}
-                    className=" px-4 py-1  bg-[#EB662B] text-white text-sm font-semibold  flex items-center justify-center my-3 border p-1 rounded-lg  hover:text-white"
-                  >
-                    Delete account
-                  </button>
-                </div>
-              </div>
+                Logout
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                className="px-4 py-1 bg-[#EB662B] text-white rounded-lg hover:opacity-90"
+              >
+                Delete account
+              </button>
             </div>
           </div>
-          {/* ---------------------------------------------------------------------------------------- */}
-          <div className="w-[65%] max-sm:w-full">
-            <div className="main-div">
-              <nav className="w-full border-[#EB662B] border-b-4 py-3 overflow-x-auto navbar">
-                <div className="w-full flex gap-2">
-                  <button
-                    className={
-                      activePanelId === 1
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-[#EB662B] text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(1)}
-                  >
-                    Bookings
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 2
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-[#EB662B] text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(2)}
-                  >
-                    Add Packages
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 3
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-[#EB662B] text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(3)}
-                  >
-                    All Packages
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 4
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-[#EB662B] text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(4)}
-                  >
-                    Users
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 5
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-[#EB662B] text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(5)}
-                  >
-                    Payments
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 6
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-[#EB662B] text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(6)}
-                  >
-                    Ratings/Reviews
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 7
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-[#EB662B] text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(7)}
-                  >
-                    History
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 8
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="updateProfile"
-                    onClick={() => setActivePanelId(8)}
-                  >
-                    {loading ? "Loading..." : "Update profile"}
-                  </button>
-                </div>
-              </nav>
-              <div className="content-div flex flex-wrap my-5">
-                {activePanelId === 1 ? (
-                  <AllBookings />
-                ) : activePanelId === 2 ? (
-                  <AddPackages />
-                ) : activePanelId === 3 ? (
-                  <AllPackages />
-                ) : activePanelId === 4 ? (
-                  <AllUsers />
-                ) : activePanelId === 5 ? (
-                  <Payment />
-                ) : activePanelId === 6 ? (
-                  <RatingsReviews />
-                ) : activePanelId === 7 ? (
-                  <History />
-                ) : activePanelId === 8 ? (
-                  <AdminUpdateProfile />
-                ) : (
-                  <div>Page Not Found!</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div>
-          <p className="text-red-700">Login First</p>
         </div>
-      )}
+      </div>
+
+      {/* Main Panel */}
+      <div className="w-[65%] max-sm:w-full">
+        <nav className="w-full border-b-4 border-[#EB662B] py-3 overflow-x-auto">
+          <div className="flex gap-2">
+            {panels.map((panel) => (
+              <button
+                key={panel.id}
+                className={`p-1 rounded-t transition-all duration-300 text-nowrap ${
+                  activePanelId === panel.id ? "bg-[#EB662B] text-white" : ""
+                }`}
+                onClick={() => setActivePanelId(panel.id)}
+              >
+                {panel.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        <div className="content-div flex flex-wrap my-5">
+          {panels.find((panel) => panel.id === activePanelId)?.component || (
+            <div>Page Not Found!</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
 export default AdminDashboard;
-

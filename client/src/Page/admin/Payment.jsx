@@ -1,86 +1,46 @@
+// 5️⃣ Payments.jsx
 import { useEffect, useState } from "react";
-//import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-const API_URL =
-  import.meta.env.MODE === "development"
-    ? "http://localhost:5000"
-    : import.meta.env.VITE_SERVER_URL;
+import { toast } from "react-toastify";
 
-    const Payments = () => {
-  //const { currentUser } = useSelector((state) => state.user);
-  const [allBookings, setAllBookings] = useState([]);
+const Payments = () => {
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [search, setSearch] = useState("");
 
-  const getAllBookings = async () => {
+  const fetchPayments = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `${API_URL}/api/booking/get-allBookings?searchTerm=${search}`
-      );
+      const res = await fetch(`/api/booking/get-allBookings?searchTerm=${search}`, { credentials: "include" });
       const data = await res.json();
-      if (data?.success) {
-        setAllBookings(data?.bookings);
-        setLoading(false);
-        setError(false);
-      } else {
-        setLoading(false);
-        setError(data?.message);
-      }
-    } catch (error) {
-      console.log(error);
+      if (data?.success) setBookings(data.bookings);
+      else toast.error(data?.message);
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to fetch payments");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    getAllBookings();
+    fetchPayments();
   }, [search]);
 
   return (
-    <div className="w-full flex justify-center">
-      <div className="w-[95%] shadow-xl rounded-lg p-3 flex flex-col gap-2">
-        <h1 className="text-center text-2xl">Payments</h1>
-        {loading && <h1 className="text-center text-2xl">Loading...</h1>}
-        {error && <h1 className="text-center text-2xl">{error}</h1>}
-        <div className="w-full border-b-4">
-          <input
-            className="border rounded-lg p-2 mb-2"
-            type="text"
-            placeholder="Search Username or Email"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-            }}
-          />
-        </div>
-        {!loading &&
-          allBookings &&
-          allBookings.map((booking, i) => {
-            return (
-              <div
-                className="w-full border-y-2 p-3 flex flex-wrap overflow-auto gap-3 items-center justify-between"
-                key={i}
-              >
-                <Link to={`/package/${booking?.packageDetails?._id}`}>
-                  <img
-                    className="w-12 h-12"
-                    src={`${API_URL}/images/${booking?.packageDetails?.packageImages[0]}`}
-                    alt="Package Image"
-                  />
-                </Link>
-                <Link to={`/package/${booking?.packageDetails?._id}`}>
-                  <p className="hover:underline">
-                    {booking?.packageDetails?.packageName}
-                  </p>
-                </Link>
-                <p>{booking?.buyer?.username}</p>
-                <p>{booking?.buyer?.email}</p>
-                <p>{booking?.date}</p>
-                <p>${booking?.totalPrice}</p>
-              </div>
-            );
-          })}
+    <div className="w-full flex justify-center p-4">
+      <div className="w-full sm:w-[95%] bg-white shadow-md rounded p-3">
+        <h1 className="text-center text-2xl">{loading ? "Loading..." : "Payments"}</h1>
+        <input type="text" placeholder="Search..." className="border p-2 rounded my-2 w-full" onChange={(e) => setSearch(e.target.value)} />
+        {bookings?.map((b) => (
+          <div key={b._id} className="flex justify-between border-b p-2 items-center flex-wrap gap-2">
+            <Link to={`/package/${b.packageDetails?._id}`}>{b.packageDetails?.packageName}</Link>
+            <p>{b.buyer?.username}</p>
+            <p>{b.buyer?.email}</p>
+            <p>{b.date}</p>
+            <p>${b.totalPrice}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -62,7 +62,7 @@ export const loginController = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(200).send({
+      return res.status(400).send({
         success: false,
         message: "All fields are required!",
       });
@@ -77,7 +77,7 @@ export const loginController = async (req, res) => {
     }
 
     if (validUser.authProvider === "google") {
-      return res.status(400).send({
+      return res.status(403).send({
         success: false,
         message: "Please login using Google",
       });
@@ -89,37 +89,41 @@ export const loginController = async (req, res) => {
     );
 
     if (!validPassword) {
-      return res.status(200).send({
+      return res.status(401).send({
         success: false,
         message: "Invalid email or password",
       });
     }
 
     const token = jwt.sign(
-      { id: validUser._id },
+      { id: validUser._id, role: validUser.user_role },
       process.env.JWT_SECRET,
       { expiresIn: "4d" }
     );
 
     const { password: pass, ...rest } = validUser._doc;
 
-    res
-      .cookie("X_TTMS_access_token", token, {
-        httpOnly: true,
-        maxAge: 4 * 24 * 60 * 60 * 1000,
-         secure: isProduction,
-         sameSite: isProduction ? "none" : "lax",
-      })
-      .status(200)
-      .send({
-        success: true,
-        message: "Login Success",
-        user: rest,
-      });
+    res.cookie("X_TTMS_access_token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 4 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).send({
+      success: true,
+      message: "Login Success",
+      user: rest,
+    });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    res.status(500).send({
+      success: false,
+      message: "Login failed",
+    });
   }
 };
+
 
 // ✅ GOOGLE LOGIN CONTROLLER
 export const googleAuthController = async (req, res) => {
@@ -135,14 +139,17 @@ export const googleAuthController = async (req, res) => {
 
     let user = await User.findOne({ email });
 
-    if (!user) {
-      user = await User.create({
-        username: name,
-        email,
-        avatar: picture,
-        authProvider: "google",
-      });
-    }
+  if (!user) {
+  user = await User.create({
+    username: name,
+    email,
+    avatar: picture,
+    authProvider: "google",
+    address: "",
+    phone: "",
+  });
+}
+
 
     const jwtToken = jwt.sign(
       { id: user._id },

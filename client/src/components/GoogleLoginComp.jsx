@@ -20,9 +20,8 @@ const GoogleLoginComp = () => {
       const res = await fetch(`${API_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: credentialResponse.credential,
-        }),
+        body: JSON.stringify({ token: credentialResponse.credential }),
+        credentials: "include", // ✅ ensures JWT cookie is set
       });
 
       const data = await res.json();
@@ -30,7 +29,13 @@ const GoogleLoginComp = () => {
       if (data.success) {
         dispatch(loginSuccess(data.user));
         toast.success("Logged in with Google");
-        navigate("/");
+
+        // ✅ Automatic admin redirect
+        if (data.user.user_role === 1) {
+          navigate("/profile/admin"); // admin dashboard
+        } else {
+          navigate("/"); // normal user home
+        }
       } else {
         dispatch(loginFailure(data.message));
         toast.error(data.message);
@@ -38,6 +43,7 @@ const GoogleLoginComp = () => {
     } catch (error) {
       dispatch(loginFailure(error.message));
       toast.error("Google login failed");
+      console.error(error);
     }
   };
 

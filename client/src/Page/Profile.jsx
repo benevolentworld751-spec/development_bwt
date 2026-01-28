@@ -15,50 +15,35 @@ import UpdateProfile from "../Page/user/UpdateProfile";
 import MyHistory from "../Page/user/MyHistory";
 import { toast } from "react-toastify";
 
+// Define API URL
 const API_URL =
-  import.meta.env.MODE === "production"
+  import.meta.env.MODE === "development"
     ? "http://localhost:5000"
     : import.meta.env.VITE_SERVER_URL;
 
 const Profile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const { currentUser } = useSelector((state) => state.user);
   const [activePanelId, setActivePanelId] = useState(1);
-  const [, setFormData] = useState({
-    username: "",
-    email: "",
-    address: "",
-    phone: "",
-    avatar: "",
-  });
 
+  // Redirect if not logged in
   useEffect(() => {
-    // Redirect if not logged in
     if (!currentUser) {
       navigate("/login");
-    } else {
-      setFormData({
-        username: currentUser.username,
-        email: currentUser.email,
-        address: currentUser.address,
-        phone: currentUser.phone,
-        avatar: currentUser.avatar,
-      });
     }
   }, [currentUser, navigate]);
 
-  // ✅ Helper to handle Google Images vs Local Uploads
+  // ✅ Helper for Profile Image (Matches Navbar Logic)
   const getProfileImage = () => {
     if (!currentUser?.avatar) {
       return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTueIx2Jkawe7r91I50VfVAZLS60yx8RjiSfQ&s";
     }
-    // If it starts with http/https (like Google Auth), use it directly
+    // If it starts with http (Google/Firebase), use it as is
     if (currentUser.avatar.startsWith("http")) {
       return currentUser.avatar;
     }
-    // Otherwise, append the backend URL
+    // Otherwise, append backend URL
     return `${API_URL}/images/${currentUser.avatar}`;
   };
 
@@ -81,9 +66,7 @@ const Profile = () => {
 
   const handleDeleteAccount = async (e) => {
     e.preventDefault();
-    const CONFIRM = confirm(
-      "Are you sure ? the account will be permenantly deleted!"
-    );
+    const CONFIRM = confirm("Are you sure? The account will be permanently deleted!");
     if (CONFIRM) {
       try {
         dispatch(deleteUserAccountStart());
@@ -98,7 +81,7 @@ const Profile = () => {
         }
         dispatch(deleteUserAccountSuccess());
         toast.success(data?.message);
-        navigate("/login"); // Navigate after delete
+        navigate("/login");
       } catch {
         toast.error("Error deleting account");
       }
@@ -115,7 +98,7 @@ const Profile = () => {
               {/* Profile Picture Section */}
               <div className="w-full flex flex-col items-center relative">
                 <img
-                  src={getProfileImage()} // ✅ Uses the fixed helper
+                  src={getProfileImage()} // ✅ Uses the helper function
                   alt="Profile photo"
                   className="w-36 h-36 rounded-full object-cover border-2 border-gray-200"
                 />

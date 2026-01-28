@@ -1,119 +1,66 @@
-import  { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+
+// 4️⃣ History.jsx
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
-const API_URL =
-  import.meta.env.MODE === "development"
-    ? "http://localhost:5000"
-    : import.meta.env.VITE_SERVER_URL;
+
 const History = () => {
-  const { currentUser } = useSelector((state) => state.user);
-  const [allBookings, setAllBookings] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [search, setSearch] = useState("");
 
-  const getAllBookings = async () => {
+  const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `${API_URL}/api/booking/get-allBookings?searchTerm=${search}`
-      );
+      const res = await fetch(`/api/booking/get-allBookings?searchTerm=${search}`, { credentials: "include" });
       const data = await res.json();
-      if (data?.success) {
-        setAllBookings(data?.bookings);
-        setLoading(false);
-        setError(false);
-      } else {
-        setLoading(false);
-        setError(data?.message);
-      }
-    } catch (error) {
-      console.log(error);
+      if (data?.success) setBookings(data.bookings);
+      else toast.error(data?.message);
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to fetch bookings");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    getAllBookings();
+    fetchBookings();
   }, [search]);
 
-  const handleHistoryDelete = async (id) => {
+  const deleteHistory = async (id) => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `${API_URL}/api/booking/delete-booking-history/${id}/${currentUser._id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const res = await fetch(`/api/booking/delete-booking-history/${id}`, { method: "DELETE", credentials: "include" });
       const data = await res.json();
-      if (data?.success) {
-        setLoading(false);
-        toast.success(data?.message);
-        getAllBookings();
-      } else {
-        setLoading(false);
-        toast.error(data?.message);
-      }
-    } catch (error) {
-      console.log(error);
+      toast[data?.success ? "success" : "error"](data?.message);
+      fetchBookings();
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to delete history");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="w-full flex justify-center">
-      <div className="w-[95%] shadow-xl rounded-lg p-3 flex flex-col gap-2">
-        <h1 className="text-center text-2xl">History</h1>
-        {loading && <h1 className="text-center text-2xl">Loading...</h1>}
-        {error && <h1 className="text-center text-2xl">{error}</h1>}
-        <div className="w-full border-b-4">
-          <input
-            className="border rounded-lg p-2 mb-2"
-            type="text"
-            placeholder="Search Username or Email"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-            }}
-          />
+    <div className="w-full flex justify-center p-4">
+      <div className="w-full sm:w-[95%] bg-white shadow-md rounded p-3">
+        <h1 className="text-center text-2xl">{loading ? "Loading..." : "History"}</h1>
+        <input type="text" placeholder="Search..." className="border p-2 rounded my-2 w-full" onChange={(e) => setSearch(e.target.value)} />
+        <div>
+          {bookings?.map((b) => (
+            <div key={b._id} className="flex justify-between border-b p-2 items-center flex-wrap gap-2">
+              <Link to={`/package/${b.packageDetails?._id}`}>{b.packageDetails?.packageName}</Link>
+              <p>{b.buyer?.username}</p>
+              <p>{b.buyer?.email}</p>
+              <p>{b.date}</p>
+              <button onClick={() => deleteHistory(b._id)} disabled={loading} className="bg-red-600 text-white p-2 rounded">
+                Delete
+              </button>
+            </div>
+          ))}
         </div>
-        {!loading &&
-          allBookings &&
-          allBookings.map((booking, i) => {
-            return (
-              <div
-                className="w-full border-y-2 p-3 flex flex-wrap overflow-auto gap-3 items-center justify-between"
-                key={i}
-              >
-                <Link to={`/package/${booking?.packageDetails?._id}`}>
-                  <img
-                    className="w-12 h-12"
-                    src={`${API_URL}/images/${booking?.packageDetails?.packageImages[0]}`}
-                    alt="Package Image"
-                  />
-                </Link>
-                <Link to={`/package/${booking?.packageDetails?._id}`}>
-                  <p className="hover:underline">
-                    {booking?.packageDetails?.packageName}
-                  </p>
-                </Link>
-                <p>{booking?.buyer?.username}</p>
-                <p>{booking?.buyer?.email}</p>
-                <p>{booking?.date}</p>
-                {(new Date(booking?.date).getTime() < new Date().getTime() ||
-                  booking?.status === "Cancelled") && (
-                  <button
-                    onClick={() => {
-                      handleHistoryDelete(booking._id);
-                    }}
-                    className="p-2 rounded bg-red-600 text-white hover:opacity-95"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            );
-          })}
       </div>
     </div>
   );

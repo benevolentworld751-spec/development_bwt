@@ -1,5 +1,6 @@
+// 1️⃣ AddPackages.jsx
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
 
@@ -25,325 +26,185 @@ const AddPackages = () => {
     packageImages: [],
   });
 
- const [isUploading, setIsUploading] = useState(false);
-  const params = useParams();
-  const [Formerror, setFormError] = useState(false);
-  const navigate = useNavigate();
+  const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
-    if (e.target.type === "checkbox") {
-      setFormData({ ...formData, [e.target.id]: e.target.checked });
-    }
+    const { id, value, type, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: type === "checkbox" ? checked : value }));
   };
 
   const handleFile = (e) => {
-    const files = e.target.files;
-    setFormData((prevData) => ({
-      ...prevData,
-      packageImages: Array.from(files), // Convert FileList to an array
-    }));
+    const files = Array.from(e.target.files);
+    setFormData((prev) => ({ ...prev, packageImages: files }));
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validations
-    if (formData.packageImages.length === 0) {
-      toast.error("You must upload at least 1 image");
-      return;
-    }
-
+    if (!formData.packageImages.length) return toast.error("Upload at least 1 image");
     if (
-       formData.packageName === "" ||
-       formData.packageDescription === "" ||
-       formData.packageDestination === "" ||
-       formData.packageAccommodation === "" ||
-       formData.packageTransportation === "" ||
-       formData.packageMeals === "" ||
-       formData.packageActivities === "" ||
-       formData.packagePrice === 0
-    ) {
-      toast.error("All fields are required!");
-      return;
-    }
-
-    if (formData.packagePrice < 500) {
-      toast.error("Price should be greater than 500!");
-      return;
-    }
-
-    if (
-      formData.packageOffer &&
-      formData.packageDiscountPrice >= formData.packagePrice
-    ) {
-      toast.error("Regular Price should be greater than Discount Price!");
-      return;
-    }
-
-    // Prepare FormData
-    const data = new FormData();
-    data.append("packageName", formData.packageName);
-    data.append("packageDescription", formData.packageDescription);
-    data.append("packageDestination", formData.packageDestination);
-    data.append("packageAccommodation", formData.packageAccommodation);
-    data.append("packageTransportation", formData.packageTransportation);
-    data.append("packageMeals", formData.packageMeals);
-    data.append("packageActivities", formData.packageActivities);
-    data.append("packagePrice", formData.packagePrice);
-    data.append("packageDiscountPrice", formData.packageDiscountPrice);
-    data.append("packageOffer", formData.packageOffer);
-
-    // Append images
-    if (Array.isArray(formData.packageImages)) {
-      formData.packageImages.forEach((image) => {
-        data.append("packageImages", image); // Must match Multer field name
-      });
-    }
+      !formData.packageName ||
+      !formData.packageDescription ||
+      !formData.packageDestination ||
+      !formData.packageAccommodation ||
+      !formData.packageTransportation ||
+      !formData.packageMeals ||
+      !formData.packageActivities ||
+      !formData.packagePrice
+    )
+      return toast.error("All fields are required!");
+    if (formData.packagePrice < 500) return toast.error("Price must be > 500");
+    if (formData.packageOffer && formData.packageDiscountPrice >= formData.packagePrice)
+      return toast.error("Discount must be less than price");
 
     try {
       setIsUploading(true);
       setLoading(true);
-      const res = await axios.post(
-        `${API_URL}/api/package/update-package/${params?.id}`, // Update API endpoint
-        //`${API_URL}/api/package/create-package`,
-        data,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data", // Make sure the Content-Type is set to multipart
-          },
-          withCredentials: true, // If you're using cookies or sessions for authentication
-        }
-      );
-         
-          //console.log(res, "res");
-           setIsUploading(false);
-           setLoading(false);
+      const data = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key !== "packageImages") data.append(key, value);
+      });
+      formData.packageImages.forEach((img) => data.append("packageImages", img));
 
-      if (!res.data.success) {
-        setFormError(res.data.message);
-        setLoading(false);
-        return;
-      }
-      toast.success(res.data.message || "Package updated successfully!");
+      const res = await axios.post(`${API_URL}/api/package/create-package`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
+      });
+
+      toast[res.data?.success ? "success" : "error"](res.data?.message);
+      setIsUploading(false);
       setLoading(false);
-      setFormError(false);
-      // Redirect or reset the form if needed
-      navigate(`/package/${params?.id}`);
-
+      if (res.data?.success) navigate("/admin/packages");
     } catch (err) {
-      console.error("Submit error:", err);
-       setIsUploading(false);
-       setLoading(false);
-      setFormError("Something went wrong. Try again!");
+      console.log(err);
+      toast.error("Something went wrong!");
+      setIsUploading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      <div className=" mt-6 w-full min-h-screen flex items-center justify-center bg-[#EB662B] text-white rounded-lg">
-        <div className="w-[95%] md:w-[90%] lg:w-[80%]  mx-auto flex flex-col gap-6 rounded-xl shadow-xl py-8">
-          {/* Centered Heading */}
-          <h1 className="text-center text-lg font-semibold md:text-3xl md:font-bold text-white">
-            Add <span className="">Package</span>
-          </h1>
+    <div className="w-full flex justify-center p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full sm:w-[70%] bg-white p-6 rounded-xl shadow-md flex flex-col gap-4"
+      >
+        <h1 className="text-2xl text-center font-semibold">Add Package</h1>
 
-          <div className="flex flex-col md:flex-row gap-5 items-center justify-center px-4">
-            {/* Right Side: Form */}
-            <form
-              onSubmit={handleSubmit}
-              className="w-full flex flex-col gap-4"
-            >
-              <div className="flex flex-col">
-                <label>Name:</label>
-                <input
-                  type="text"
-                  id="packageName"
-                  value={formData.packageName}
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800 outline-none"
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <label>Description:</label>
-                <textarea
-                  id="packageDescription"
-                  value={formData.packageDescription}
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800  outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <label>Destination:</label>
-                <input
-                  type="text"
-                  id="packageDestination"
-                  value={formData.packageDestination}
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800  outline-none"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex flex-col w-full">
-                  <label>Days:</label>
-                  <input
-                    type="number"
-                    id="packageDays"
-                    value={formData.packageDays}
-                    onChange={handleChange}
-                    className="p-2 border rounded bg-gray-200 text-gray-800  outline-none"
-                  />
-                </div>
-                <div className="flex flex-col w-full">
-                  <label>Nights:</label>
-                  <input
-                    type="number"
-                    id="packageNights"
-                    value={formData.packageNights}
-                    onChange={handleChange}
-                    className="p-2 border rounded bg-gray-200 text-gray-800  outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col">
-                <label>Accommodation:</label>
-                <textarea
-                  id="packageAccommodation"
-                  value={formData.packageAccommodation}
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800  outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <label>Transportation:</label>
-                <select
-                  id="packageTransportation"
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800  outline-none"
-                >
-                  <option>Select</option>
-                  <option>Flight</option>
-                  <option>Car</option>
-                  <option>Boat</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col">
-                <label>Meals:</label>
-                <textarea
-                  id="packageMeals"
-                  value={formData.packageMeals}
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800  outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <label>Activities:</label>
-                <textarea
-                  id="packageActivities"
-                  value={formData.packageActivities}
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800  outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <label>Price:</label>
-                <input
-                  type="number"
-                  id="packagePrice"
-                  value={formData.packagePrice}
-                  onChange={handleChange}
-                  className="p-2 border rounded bg-gray-200 text-gray-800  outline-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label htmlFor="packageOffer">Offer:</label>
-                <input
-                  type="checkbox"
-                  id="packageOffer"
-                  checked={formData.packageOffer}
-                  onChange={handleChange}
-                  className="w-4 h-4"
-                />
-              </div>
-
-              {formData.packageOffer && (
-                <div className="flex flex-col">
-                  <label>Discount Price:</label>
-                  <input
-                    type="number"
-                    id="packageDiscountPrice"
-                    value={formData.packageDiscountPrice}
-                    onChange={handleChange}
-                    className="p-2 border rounded bg-gray-200 text-gray-800  outline-none"
-                  />
-                </div>
-              )}
-
-              {/* Upload Section */}
-              <div>
-                <label className="text-sm font-medium   mb-2">
-                  Upload Images
-                </label>
-                <div className="relative flex items-center justify-center w-full cursor-pointer bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 hover:bg-gray-50 transition">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleFile}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <span className="text-gray-500">Click to select images</span>
-                </div>
-
-                {/* Image Preview */}
-                {formData.packageImages.length > 0 && (
-                  <div className="mt-4 grid grid-cols-3 gap-4">
-                    {formData.packageImages.map((file, index) => {
-                      const imageUrl = URL.createObjectURL(file);
-                      return (
-                        <div
-                          key={index}
-                          className="relative w-full aspect-square border border-gray-300 rounded overflow-hidden"
-                        >
-                          <img
-                            src={imageUrl}
-                            alt={`Preview ${index + 1}`}
-                            className="object-cover w-full h-full"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isUploading || loading}
-                className="text-white p-3 rounded bg-black hover:opacity-95 disabled:opacity-70 mt-2"
-              >
-                { isUploading
-                  ? "Uploading..."
-                  : loading
-                  ? "Loading..."
-                  : "Create New Package" 
-                }
-              </button>
-            </form>
-          </div>
+        <input
+          type="text"
+          id="packageName"
+          placeholder="Package Name"
+          value={formData.packageName}
+          onChange={handleChange}
+          className="border p-2 rounded w-full"
+        />
+        <textarea
+          id="packageDescription"
+          placeholder="Description"
+          value={formData.packageDescription}
+          onChange={handleChange}
+          className="border p-2 rounded w-full resize-none"
+        />
+        <input
+          type="text"
+          id="packageDestination"
+          placeholder="Destination"
+          value={formData.packageDestination}
+          onChange={handleChange}
+          className="border p-2 rounded w-full"
+        />
+        <div className="flex gap-2">
+          <input
+            type="number"
+            id="packageDays"
+            value={formData.packageDays}
+            onChange={handleChange}
+            placeholder="Days"
+            className="border p-2 rounded w-full"
+          />
+          <input
+            type="number"
+            id="packageNights"
+            value={formData.packageNights}
+            onChange={handleChange}
+            placeholder="Nights"
+            className="border p-2 rounded w-full"
+          />
         </div>
-      </div>
-    </>
+        <textarea
+          id="packageAccommodation"
+          placeholder="Accommodation"
+          value={formData.packageAccommodation}
+          onChange={handleChange}
+          className="border p-2 rounded w-full resize-none"
+        />
+        <select
+          id="packageTransportation"
+          value={formData.packageTransportation}
+          onChange={handleChange}
+          className="border p-2 rounded w-full"
+        >
+          <option value="">Select Transportation</option>
+          <option value="Flight">Flight</option>
+          <option value="Train">Train</option>
+          <option value="Boat">Boat</option>
+          <option value="Other">Other</option>
+        </select>
+        <textarea
+          id="packageMeals"
+          placeholder="Meals"
+          value={formData.packageMeals}
+          onChange={handleChange}
+          className="border p-2 rounded w-full resize-none"
+        />
+        <textarea
+          id="packageActivities"
+          placeholder="Activities"
+          value={formData.packageActivities}
+          onChange={handleChange}
+          className="border p-2 rounded w-full resize-none"
+        />
+        <input
+          type="number"
+          id="packagePrice"
+          placeholder="Price"
+          value={formData.packagePrice}
+          onChange={handleChange}
+          className="border p-2 rounded w-full"
+        />
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="packageOffer"
+            checked={formData.packageOffer}
+            onChange={handleChange}
+          />
+          <label>Offer?</label>
+        </div>
+        {formData.packageOffer && (
+          <input
+            type="number"
+            id="packageDiscountPrice"
+            placeholder="Discount Price"
+            value={formData.packageDiscountPrice}
+            onChange={handleChange}
+            className="border p-2 rounded w-full"
+          />
+        )}
+        <input type="file" multiple onChange={handleFile} className="border p-2 rounded w-full" />
+        <button
+          type="submit"
+          disabled={loading || isUploading}
+          className="bg-[#EB662B] text-white p-3 rounded hover:opacity-90"
+        >
+          {isUploading ? "Uploading..." : loading ? "Loading..." : "Create Package"}
+        </button>
+      </form>
+    </div>
   );
 };
 
