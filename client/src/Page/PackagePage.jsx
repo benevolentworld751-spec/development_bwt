@@ -8,71 +8,48 @@ import Package from "./PackageLink";
 const packages = [
   {
     id: 1,
-    title: "Maldives Getaway",
-    location: "Maldives",
+    title: "Manali Getaway",
+    location: "Manali, India",
     duration: "5 Days / 4 Nights",
-    price: 89999,
+    price: 29999,
     description:
       "Experience paradise with crystal-clear waters and luxurious villas.",
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
+    image: "https://lifelinetourism.in/wp-content/uploads/2022/05/manali-holiday-package.jpg",
   },
   {
     id: 2,
-    title: "Swiss Alps Adventure",
-    location: "Switzerland",
+    title: "Kashmir Adventure",
+    location: "Kashmir, India",
     duration: "7 Days / 6 Nights",
-    price: 129999,
+    price: 39599,
     description:
       "Breathtaking views, cozy chalets, and mountain adventures await you.",
-    image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
+    image: "https://charzanholidays.com/wp-content/uploads/2024/07/blog-experience-shikara-ride-in-dal-lake-1637909418.jpg",
   },
   {
     id: 3,
-    title: "Dubai Luxury Tour",
-    location: "Dubai, UAE",
+    title: "Goa Beach Retreat",
+    location: "Goa, India",
     duration: "4 Days / 3 Nights",
-    price: 75999,
+    price: 17999,
     description: "Luxury shopping, desert safari, and stunning skyscrapers.",
-    image: "https://images.alphacoders.com/153/thumb-1920-153011.jpg",
-  },
-  {
-    id: 4,
-    title: "Bali Cultural Escape",
-    location: "Bali, Indonesia",
-    duration: "6 Days / 5 Nights",
-    price: 67999,
-    description:
-      "Immerse yourself in the culture, temples, and tropical beaches of Bali.",
-    image:
-      "https://bali.com/wp-content/uploads/2024/04/pura-ulun-bratan-temple-bali-1280.webp",
-  },
-  {
-    id: 5,
-    title: "Kashmir Luxury Tour",
-    location: "Kashmir, India",
-    duration: "4 Days / 3 Nights",
-    price: 16999,
-    description:
-      "Snowy mountains, houseboats, and the serenity of Dal Lake await you.",
-    image: "https://in.musafir.com/uploads/5_4_d115f28046.webp",
-  },
-  {
-    id: 6,
-    title: "Manali Tour",
-    location: "Himachal Pradesh, India",
-    duration: "6 Days / 5 Nights",
-    price: 9999,
-    description:
-      "Enjoy the scenic valleys, waterfalls, and adventure sports of Manali.",
-    image:
-      "https://discoverkullumanali.in/wp-content/uploads/2024/03/Discover-Kullu-Manali-Home-Page-banner-1140x530.jpg",
-  },
+    image: "https://assets.cntraveller.in/photos/65169715f1f1534fc4e0f24d/4:3/w_1640,h_1230,c_limit/W%20Goa.jpg",
+  }, 
 ];
 
+// More packages can be added here
 const PackagesPage = () => {
   return (
     <div className="bg-gray-100 min-h-screen py-16">
       <div className="container mx-auto px-6">
+          <motion.h1
+          className="text-7xl font-bold text-center text-gray-800 mb-10"
+          initial={{ opacity: 0, y: -40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          Domestic Travel Packages In India
+        </motion.h1>
         <motion.h1
           className="text-4xl font-bold text-center text-gray-800 mb-10"
           initial={{ opacity: 0, y: -40 }}
@@ -111,6 +88,7 @@ const PackagesPage = () => {
         </div>
       </div>
       <Package />
+    
     </div>
   );
 };

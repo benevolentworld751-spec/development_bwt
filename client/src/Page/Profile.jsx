@@ -18,8 +18,8 @@ import { toast } from "react-toastify";
 // Define API URL
 const API_URL =
   import.meta.env.MODE === "development"
-    ? "http://localhost:5000"
-    : import.meta.env.VITE_SERVER_URL;
+    ? import.meta.env.VITE_SERVER_URL
+    : "https://benevolent-world-travel.onrender.com";
 
 const Profile = () => {
   const navigate = useNavigate();

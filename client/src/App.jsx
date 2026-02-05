@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; 
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import Navbar from "./components/Navbar";
 import ScrollToTop from "./components/ScrollToTop";
@@ -11,13 +11,13 @@ import SignupPage from "./Page/SignupPage";
 import LoginPage from "./Page/LoginPage";
 import PackagesPage from "./Page/PackagePage";
 import VisaApply from "./components/VisaApply";
-import FlightApplyPage from "./components/FlightApply";
 import VisaPage from "./Page/VisaPage";
 import FlightPage from "./Page/FlightPage";
 import HolidayPage from "./Page/HolidayPage";
-import BookHolidayPage from "./Page/BookHolidayPage";
 import CarPackagePage from "./Page/CarPackagePage";
-import BookCar from "./components/BookCar";
+import InternationalPack from "./components/InternationalPack";
+import PackageDetailPage from "./components/PackageDetailPage";
+import CountryPackagesPage from "./Page/CountryPackagesPage";
 import NotFound from "./components/NotFound";
 import AdminDashboard from "./Page/admin/AdminDashboard";
 import RoleSelectionCard from "./components/RoleSelectionCard";
@@ -30,35 +30,50 @@ import Booking from "./Page/user/Booking";
 import Contacts from "./components/Contacts";
 import { FaRobot } from "react-icons/fa";
 import AskAIModal from "./components/AskAIModal";
-import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
+import "./App.css";
+import { generateResponse } from "./utils/chatbotLogic"; 
+
 
 function App() {
   const [showModal, setShowModal] = useState(false);
-  const [aiReply, setAIReply] = useState("");
+
+  const [messages, setMessages] = useState([]);
+
   const [loading, setLoading] = useState(false);
 
-  const handleAsk = async (question) => {
-    setLoading(true);
-    try {
-      const res = await axios({
-        url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
-        method: "post",
-        data: { contents: [{ parts: [{ text: question }] }] },
-      });
-      const response = res.data.candidates?.[0]?.content?.parts?.[0]?.text;
-      setAIReply(response || "No answer from AI.");
-    } catch (error) {
-      console.log(error);
-      setAIReply("Something went wrong!");
-    } finally {
-      setLoading(false);
+  const handleAsk = (question) => {
+  setLoading(true);
+
+  setMessages(prev => [...prev, { role: "user", text: question }]);
+
+  setTimeout(() => {
+    const response = generateResponse(question);
+
+    if (typeof response === "string") {
+      setMessages(prev => [...prev, { role: "bot", text: response }]);
+    } else {
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "bot",
+          text: response.text,
+          action: response,
+        },
+        {
+          role: "bot",
+          text: "💬 Would you like to chat with us on WhatsApp?",
+        }
+      ]);
     }
-  };
+
+    setLoading(false);
+  }, 800);
+};
+
 
   return (
     <>
-      {/* ✅ ADDED FUTURE FLAGS HERE TO SILENCE WARNINGS */}
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Navbar />
         <ScrollToTop />
@@ -78,12 +93,16 @@ function App() {
           <Route path="/visa-package" element={<VisaPage />} />
           <Route path="/air-package" element={<FlightPage />} />
           <Route path="/holiday" element={<HolidayPage />} />
-          <Route path="/book-holiday" element={<BookHolidayPage />} />
-          <Route path="/book-flight" element={<FlightApplyPage />} />
           <Route path="/visa-apply" element={<VisaApply />} />
           <Route path="/contact" element={<Contacts />} />
           <Route path="/car-package" element={<CarPackagePage />} />
-          <Route path="/car-book" element={<BookCar />} />
+          <Route path="/international-pack" element={<InternationalPack />} />
+          <Route path="/packages/:country" element={<CountryPackagesPage />} />
+
+          <Route
+            path="/packages/detail/:slug"
+            element={<PackageDetailPage />}
+          />
 
           {/* User Protected Routes */}
           <Route element={<PrivateRoute />}>
@@ -94,7 +113,10 @@ function App() {
           {/* Admin Protected Routes */}
           <Route element={<AdminRoute />}>
             <Route path="/profile/admin" element={<AdminDashboard />} />
-            <Route path="/profile/admin/update-package/:id" element={<UpdatePackage />} />
+            <Route
+              path="/profile/admin/update-package/:id"
+              element={<UpdatePackage />}
+            />
           </Route>
 
           <Route path="*" element={<NotFound />} />
@@ -103,16 +125,16 @@ function App() {
 
       <button
         onClick={() => setShowModal(true)}
-        className="fixed bottom-6 right-6 z-50 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl animate-bounce"
+        className="fixed bottom-6 right-6 z-50 p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl animate-bounce transition-all hover:scale-110"
       >
-        <FaRobot size={24} />
+        <FaRobot size={28} />
       </button>
 
       <AskAIModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onAsk={handleAsk}
-        reply={aiReply}
+        messages={messages}
         loading={loading}
       />
     </>
